@@ -56,7 +56,7 @@ const Layout = () => {
   if (!user) {
     return (
       <div className="flex justify-center items-center h-screen bg-white dark:bg-zinc-950">
-        <SignIn />
+        <SignIn fallbackRedirectUrl="/" signUpFallbackRedirectUrl="/" />
       </div>
     );
   }
@@ -71,7 +71,11 @@ const Layout = () => {
   if (user && workspaces.length === 0) {
     return (
       <div className="min-h-screen flex justify-center items-center">
-        <CreateOrganization />
+        <CreateOrganization 
+            afterCreateOrganizationUrl={() => {
+                window.location.reload();
+            }} 
+        />
       </div>
     );
   }

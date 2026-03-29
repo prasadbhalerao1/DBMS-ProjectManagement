@@ -1,8 +1,9 @@
 import prisma from "../configs/prisma.js";
+import { inngest } from "../inngest/index.js";
 
 export const addComment = async (req, res) => {
   try {
-    const { userId } = await req.auth();
+    const { userId } = req.auth;
     const { content, taskId } = req.body;
 
     const task = await prisma.task.findUnique({
@@ -27,6 +28,11 @@ export const addComment = async (req, res) => {
     const comment = await prisma.comment.create({
       data: { taskId, content, userId },
       include: { user: true },
+    });
+
+    await inngest.send({
+      name: "app/task.comment",
+      data: { taskId, commenterId: userId, commentContent: content, origin: req.headers.origin },
     });
 
     res.json({ comment });

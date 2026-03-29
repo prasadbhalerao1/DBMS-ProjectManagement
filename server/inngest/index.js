@@ -1,6 +1,7 @@
 import { Inngest } from "inngest";
 import prisma from "../configs/prisma.js";
 import sendEmail from "../configs/nodemailer.js";
+import { generateTaskAssignmentEmail, generateTaskReminderEmail, generateProjectInviteEmail, generateTaskCommentEmail } from "../utils/htmlEmails.js";
 
 // Create a client to send and receive events
 export const inngest = new Inngest({ id: "project-management" });
@@ -116,27 +117,14 @@ const sendBookingConfirmationEmail = inngest.createFunction({ id: "send-task-ass
     await sendEmail({
         to: task.assignee.email,
         subject: `New Task Assignment in ${task.project.name}`,
-        body: `
-                    <div style="max-width: 600px;">
-                    <h2>Hi ${task.assignee.name}, 👋</h2>
-                    
-                    <p style="font-size: 16px;">You've been assigned a new task:</p>
-                    <p style="font-size: 18px; font-weight: bold; color: #007bff; margin: 8px 0;">${task.title}</p>
-                    
-                    <div style="border: 1px solid #ddd; padding: 12px 16px; border-radius: 6px; margin-bottom: 30px;">
-                        <p style="margin: 6px 0;"><strong>Description:</strong> ${task.description}</p>
-                        <p style="margin: 6px 0;"><strong>Due Date:</strong> ${new Date(task.due_date).toLocaleDateString()}</p>
-                    </div>
-                    
-                    <a href="${origin}" style="background-color: #007bff; padding: 12px 24px; border-radius: 5px; color: #fff; font-weight: 600; font-size: 16px; text-decoration: none;">
-                        View Task
-                    </a>
-
-                    <p style="margin-top: 20px; font-size: 14px; color: #6c757d;">
-                        Please make sure to review and complete it before the due date.
-                    </p>
-                    </div>
-                    `,
+        body: generateTaskAssignmentEmail({
+            assigneeName: task.assignee.name,
+            taskTitle: task.title,
+            projectName: task.project.name,
+            taskDescription: task.description,
+            dueDate: task.due_date,
+            origin: origin
+        }),
     });
 
     if (new Date(task.due_date).toDateString() !== new Date().toDateString()) {
@@ -155,27 +143,14 @@ const sendBookingConfirmationEmail = inngest.createFunction({ id: "send-task-ass
                     await sendEmail({
                         to: task.assignee.email,
                         subject: `Reminder for ${task.project.name}`,
-                        body: `
-                                    <div style="max-width: 600px;">
-                                    <h2>Hi ${task.assignee.name}, 👋</h2>
-                                    
-                                    <p style="font-size: 16px;">You have a task due in ${task.project.name}:</p>
-                                    <p style="font-size: 18px; font-weight: bold; color: #007bff; margin: 8px 0;">${task.title}</p>
-                                    
-                                    <div style="border: 1px solid #ddd; padding: 12px 16px; border-radius: 6px; margin-bottom: 30px;">
-                                        <p style="margin: 6px 0;"><strong>Description:</strong> ${task.description}</p>
-                                        <p style="margin: 6px 0;"><strong>Due Date:</strong> ${new Date(task.due_date).toLocaleDateString()}</p>
-                                    </div>
-                                    
-                                    <a href="${origin}" style="background-color: #007bff; padding: 12px 24px; border-radius: 5px; color: #fff; font-weight: 600; font-size: 16px; text-decoration: none;">
-                                        View Task
-                                    </a>
-
-                                    <p style="margin-top: 20px; font-size: 14px; color: #6c757d;">
-                                        Please make sure to review and complete it before the due date.
-                                    </p>
-                                    </div>
-                                    `,
+                        body: generateTaskReminderEmail({
+                            assigneeName: task.assignee.name,
+                            taskTitle: task.title,
+                            projectName: task.project.name,
+                            taskDescription: task.description,
+                            dueDate: task.due_date,
+                            origin: origin
+                        }),
                     });
                 });
             }
@@ -183,5 +158,58 @@ const sendBookingConfirmationEmail = inngest.createFunction({ id: "send-task-ass
     }
 });
 
+// Inngest Function to Send Project Invite Email
+const sendProjectInviteEmail = inngest.createFunction(
+    { id: "send-project-invite-mail" },
+    { event: "app/project.invited" },
+    async ({ event }) => {
+        const { projectId, inviterId, inviteeEmail, origin } = event.data;
+
+        const project = await prisma.project.findUnique({ where: { id: projectId } });
+        const inviter = await prisma.user.findUnique({ where: { id: inviterId } });
+
+        if (!project || !inviter) return;
+
+        await sendEmail({
+            to: inviteeEmail,
+            subject: `Invitation to collaborate on ${project.name}`,
+            body: generateProjectInviteEmail({
+                inviterName: inviter.name,
+                projectName: project.name,
+                origin: origin + "/project/" + projectId,
+            }),
+        });
+    }
+);
+
+// Inngest Function to Send Task Comment Email
+const sendTaskCommentNotification = inngest.createFunction(
+    { id: "send-task-comment-mail" },
+    { event: "app/task.comment" },
+    async ({ event }) => {
+        const { taskId, commenterId, commentContent, origin } = event.data;
+
+        const task = await prisma.task.findUnique({
+            where: { id: taskId },
+            include: { assignee: true, project: true },
+        });
+        const commenter = await prisma.user.findUnique({ where: { id: commenterId } });
+
+        // Don't email if the commenter is the assignee themselves
+        if (!task || !commenter || !task.assignee || task.assignee.id === commenterId) return;
+
+        await sendEmail({
+            to: task.assignee.email,
+            subject: `New Comment on ${task.title}`,
+            body: generateTaskCommentEmail({
+                commenterName: commenter.name,
+                taskTitle: task.title,
+                commentContent: commentContent,
+                origin: origin + "/project/" + task.projectId,
+            }),
+        });
+    }
+);
+
 // Inngest functions
-export const functions = [syncUserCreation, syncUserDeletion, syncUserUpdation, syncWorkspaceCreation, syncWorkspaceUpdation, syncWorkspaceDeletion, syncWorkspaceMemberCreation, sendBookingConfirmationEmail];
+export const functions = [syncUserCreation, syncUserDeletion, syncUserUpdation, syncWorkspaceCreation, syncWorkspaceUpdation, syncWorkspaceDeletion, syncWorkspaceMemberCreation, sendBookingConfirmationEmail, sendProjectInviteEmail, sendTaskCommentNotification];

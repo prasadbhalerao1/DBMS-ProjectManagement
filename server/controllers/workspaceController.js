@@ -3,7 +3,7 @@ import { clerkClient } from "@clerk/express";
 
 export const getUserWorkspaces = async (req, res) => {
   try {
-    const { userId } = await req.auth();
+    const { userId } = req.auth;
     const workspaces = await prisma.workspace.findMany({
       where: {
         members: { some: { userId: userId } },
@@ -33,7 +33,7 @@ export const getUserWorkspaces = async (req, res) => {
 
 export const syncWorkspaces = async (req, res) => {
   try {
-    const { userId } = await req.auth();
+    const { userId } = req.auth;
 
     const user = await clerkClient.users.getUser(userId);
 

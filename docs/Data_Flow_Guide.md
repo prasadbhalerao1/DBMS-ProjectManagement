@@ -78,7 +78,7 @@ headers: {
 }
 
 // Server verifies via clerkMiddleware() global middleware
-// Then protect() middleware extracts req.auth().userId
+// Then protect() middleware extracts req.auth.userId
 ```
 
 ---

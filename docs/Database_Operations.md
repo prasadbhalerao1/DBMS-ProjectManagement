@@ -226,7 +226,7 @@ const workspaces = await prisma.workspace.findMany({
 #### `syncWorkspaces` — `POST /api/workspaces/sync`
 
 **Auth:** Required
-**Request Body:** None (uses `req.auth().userId`)
+**Request Body:** None (uses `req.auth.userId`)
 **Response:** `200` — Full workspaces list (same structure as `getUserWorkspaces`)
 **Failure Scenarios:**
 
@@ -656,13 +656,13 @@ All API routes (except `/api/inngest`) are protected by the `protect` middleware
 
 ```javascript
 export const protect = (req, res, next) => {
-  const { userId } = req.auth();
+  const { userId } = req.auth;
   if (!userId) return res.status(401).json({ message: "Unauthorized" });
   next();
 };
 ```
 
-Clerk's `clerkMiddleware()` is applied globally in `server.js` to populate `req.auth()`.
+Clerk's `clerkMiddleware()` is applied globally in `server.js` to populate `req.auth`.
 
 ---
 

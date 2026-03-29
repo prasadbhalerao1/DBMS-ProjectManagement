@@ -129,7 +129,7 @@ graph LR
 | ---------- | ------------------------------------------------------------------------------------------------------------------- |
 | FR-AUTH-01 | Users sign in/up via **Clerk** (hosted UI embedded in `Layout.jsx`)                                                 |
 | FR-AUTH-02 | Unauthenticated users see the Clerk `<SignIn />` screen centered on the page                                        |
-| FR-AUTH-03 | All API routes are protected by `authMiddleware.js` which validates the Clerk JWT via `req.auth()`                  |
+| FR-AUTH-03 | All API routes are protected by `authMiddleware.js` which validates the Clerk JWT via `req.auth`                  |
 | FR-AUTH-04 | User CRUD synced from Clerk via Inngest webhooks (`clerk/user.created`, `clerk/user.updated`, `clerk/user.deleted`) |
 | FR-AUTH-05 | User profile updates (first/last name) are done through Clerk's `user.update()` API on the Settings page            |
 | FR-AUTH-06 | Clerk `UserButton` component displayed in the Navbar for quick profile/sign-out access                              |

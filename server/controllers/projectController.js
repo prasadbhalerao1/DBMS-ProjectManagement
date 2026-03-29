@@ -1,8 +1,9 @@
 import prisma from "../configs/prisma.js";
+import { inngest } from "../inngest/index.js";
 
 export const createProject = async (req, res) => {
   try {
-    const { userId } = await req.auth();
+    const { userId } = req.auth;
     const {
       workspaceId,
       description,
@@ -96,7 +97,7 @@ export const createProject = async (req, res) => {
 
 export const updateProject = async (req, res) => {
   try {
-    const { userId } = await req.auth();
+    const { userId } = req.auth;
     const {
       id,
       workspaceId,
@@ -162,7 +163,7 @@ export const updateProject = async (req, res) => {
 
 export const addMember = async (req, res) => {
   try {
-    const { userId } = await req.auth();
+    const { userId } = req.auth;
     const { projectId } = req.params;
     const { email } = req.body;
 
@@ -199,6 +200,11 @@ export const addMember = async (req, res) => {
         userId: user.id,
         projectId,
       },
+    });
+
+    await inngest.send({
+      name: "app/project.invited",
+      data: { projectId, inviterId: userId, inviteeEmail: email, origin: req.headers.origin },
     });
 
     res.json({ member, message: "Member added successfully" });

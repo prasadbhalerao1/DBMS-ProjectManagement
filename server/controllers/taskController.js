@@ -3,7 +3,7 @@ import { inngest } from "../inngest/index.js";
 
 export const createTask = async (req, res) => {
   try {
-    const { userId } = await req.auth();
+    const { userId } = req.auth;
     const {
       projectId,
       title,
@@ -81,7 +81,7 @@ export const updateTask = async (req, res) => {
       return res.status(404).json({ message: "Task not found" });
     }
 
-    const { userId } = await req.auth();
+    const { userId } = req.auth;
 
     const project = await prisma.project.findUnique({
       where: { id: task.projectId },
@@ -110,7 +110,7 @@ export const updateTask = async (req, res) => {
 
 export const deleteTask = async (req, res) => {
   try {
-    const { userId } = await req.auth();
+    const { userId } = req.auth;
     const { tasksIds } = req.body;
 
     const tasks = await prisma.task.findMany({
